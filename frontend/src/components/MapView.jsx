@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
-import maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
   const mapContainer = useRef(null);
@@ -14,19 +14,20 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
   useEffect(() => {
     if (map.current) return;
 
-    map.current = new maplibregl.Map({
+    mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+
+    map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style:
-        "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: "mapbox://styles/mapbox/dark-v11",
       center: [85.82, 20.30], // Bhubaneswar
       zoom: 11,
       pitch: 45
     });
 
-    map.current.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.current.addControl(new maplibregl.FullscreenControl(), "top-right");
+    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.current.addControl(new mapboxgl.FullscreenControl(), "top-right");
     map.current.addControl(
-      new maplibregl.ScaleControl({ maxWidth: 100, unit: "metric" }),
+      new mapboxgl.ScaleControl({ maxWidth: 100, unit: "metric" }),
       "bottom-left"
     );
 
@@ -72,7 +73,7 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
         boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
       });
 
-      const popup = new maplibregl.Popup({
+      const popup = new mapboxgl.Popup({
         offset: 25,
         maxWidth: "300px"
       }).setHTML(`
@@ -84,7 +85,7 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
         💡 ${point.recommendation}
       `);
 
-      const marker = new maplibregl.Marker(el)
+      const marker = new mapboxgl.Marker(el)
         .setLngLat([point.lon, point.lat])
         .setPopup(popup)
         .addTo(map.current);
@@ -94,7 +95,7 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
     });
 
     if (filteredData.length > 0) {
-      const bounds = new maplibregl.LngLatBounds();
+      const bounds = new mapboxgl.LngLatBounds();
       filteredData.forEach(p => bounds.extend([p.lon, p.lat]));
       map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
     }
@@ -104,7 +105,7 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
   // HEATMAP
   // =============================
   useEffect(() => {
-    if (!mapLoaded || !data || !showHeatmap) return;
+    if (!mapLoaded || !data || !showHeatmap || !map.current) return;
 
     const id = "uhi-heatmap";
 
@@ -165,6 +166,13 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
           0.5, "rgb(255,255,0)",
           0.7, "rgb(255,165,0)",
           1, "rgb(255,0,0)"
+        ],
+        "heatmap-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          7, 1,
+          15, 0.5
         ]
       }
     });
@@ -189,7 +197,9 @@ const MapView = ({ data, onPointClick, selectedZone, showHeatmap }) => {
           alignItems: "center",
           justifyContent: "center",
           background: "rgba(0,0,0,0.7)",
-          color: "white"
+          color: "white",
+          fontSize: "18px",
+          fontWeight: "bold"
         }}>
           Loading Map...
         </div>

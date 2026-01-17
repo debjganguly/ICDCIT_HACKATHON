@@ -7,7 +7,7 @@ import './App.css';
 // ViewModel - Business Logic Layer
 class UHIViewModel {
   constructor() {
-    this.apiBaseUrl = 'http://127.0.0.1:5000/api/analyze';
+    this.apiBaseUrl = '/api/analyze';
   }
 
   // Fetch UHI data from backend
@@ -18,14 +18,13 @@ class UHIViewModel {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch data');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.message || 'API returned error');
+        throw new Error(result.error || 'API returned error');
       }
 
       return result;
@@ -79,7 +78,6 @@ function App() {
   // State management
   const [uhiData, setUhiData] = useState(null);
   const [statistics, setStatistics] = useState(null);
-  const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [backendHealthy, setBackendHealthy] = useState(false);
@@ -97,10 +95,12 @@ function App() {
     checkBackendHealth();
   }, []);
 
-  // Load data on mount and when parameters change
+  // Load data on mount
   useEffect(() => {
-    loadUHIData();
-  }, []);
+    if (backendHealthy) {
+      loadUHIData();
+    }
+  }, [backendHealthy]);
 
   const checkBackendHealth = async () => {
     const healthy = await viewModel.checkHealth();
@@ -108,6 +108,7 @@ function App() {
 
     if (!healthy) {
       setError('Backend server is not responding. Please ensure Flask is running on port 5000.');
+      setLoading(false);
     }
   };
 
@@ -130,7 +131,6 @@ function App() {
       // Update state
       setUhiData(result.data);
       setStatistics(result.statistics);
-      setMetadata(result.metadata);
       setError(null);
 
     } catch (err) {
@@ -163,14 +163,14 @@ function App() {
     const dataStr = JSON.stringify({
       data: uhiData,
       statistics: statistics,
-      metadata: metadata
+      exportedAt: new Date().toISOString()
     }, null, 2);
 
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `uhi-analysis-${new Date().toISOString()}.json`;
+    link.download = `uhi-analysis-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -368,26 +368,26 @@ function App() {
               </div>
             )}
 
-            {/* Metadata Footer */}
-            {metadata && (
+            {/* Data Info Footer */}
+            {statistics?.date_range && (
               <div className="metadata-footer">
                 <div className="metadata-item">
                   <span className="metadata-label">Data Source:</span>
-                  <span className="metadata-value">{metadata.source}</span>
+                  <span className="metadata-value">OpenStreetMap + Open-Meteo</span>
                 </div>
                 <div className="metadata-item">
                   <span className="metadata-label">Location:</span>
-                  <span className="metadata-value">{metadata.location}</span>
+                  <span className="metadata-value">Bhubaneswar, India</span>
                 </div>
                 <div className="metadata-item">
-                  <span className="metadata-label">Algorithms:</span>
-                  <span className="metadata-value">{metadata.algorithms.join(', ')}</span>
-                </div>
-                <div className="metadata-item">
-                  <span className="metadata-label">Generated:</span>
+                  <span className="metadata-label">Analysis Period:</span>
                   <span className="metadata-value">
-                    {viewModel.formatDate(metadata.generated_at)}
+                    {statistics.date_range.start_date} to {statistics.date_range.end_date}
                   </span>
+                </div>
+                <div className="metadata-item">
+                  <span className="metadata-label">Total Points:</span>
+                  <span className="metadata-value">{statistics.total_points}</span>
                 </div>
               </div>
             )}
