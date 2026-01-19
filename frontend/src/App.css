@@ -547,3 +547,20 @@ body {
     gap: 0.75rem;
   }
 }
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.header-hide {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+.header-show {
+  transform: translateY(0);
+  opacity: 1;
+}

@@ -90,11 +90,34 @@ function App() {
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [activeView, setActiveView] = useState("map"); // 'map' or 'analytics'
+const [showHeader, setShowHeader] = useState(true);
+
 
   // Check backend health on mount
   useEffect(() => {
     checkBackendHealth();
   }, []);
+
+  useEffect(() => {
+  let lastScrollY = window.scrollY;
+
+  const handleScroll = () => {
+    const currentScrollY = window.scrollY;
+
+    if (currentScrollY < lastScrollY || currentScrollY < 10) {
+      setShowHeader(true); // scrolling up
+    } else {
+      setShowHeader(false); // scrolling down
+    }
+
+    lastScrollY = currentScrollY;
+  };
+
+  window.addEventListener("scroll", handleScroll, { passive: true });
+
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
 
   // Load data on mount
   useEffect(() => {
@@ -182,7 +205,7 @@ function App() {
   return (
     <div className="app">
       {/* Header */}
-      <header className="app-header">
+      <header className={`app-header ${showHeader ? "header-show" : "header-hide"}`}>
         <div className="header-content">
           <div className="header-left">
             <h1 className="app-title">
